@@ -101,6 +101,15 @@ secrets.json
 *.pem
 *.key
 
+# Azure Infrastructure Files
+# AZD environment files
+.azure/*
+!.azure/.env.example
+
+# Bicep build artifacts
+infra/*.json
+!infra/main.bicepparam
+
 # Database
 *.db
 *.sqlite

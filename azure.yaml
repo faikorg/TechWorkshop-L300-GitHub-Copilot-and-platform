@@ -1,0 +1,53 @@
+name: zava-storefront
+metadata:
+  template: azd-init@1.0.0
+
+services:
+  web:
+    project: ./src
+    language: dotnet
+    host: appservice
+
+hooks:
+  preprovision:
+    shell: pwsh
+    run: |
+      Write-Host "Starting infrastructure provisioning..."
+      Write-Host "Environment: $env:AZURE_ENV_NAME"
+      Write-Host "Location: $env:AZURE_LOCATION"
+  
+  postprovision:
+    shell: pwsh
+    run: |
+      Write-Host "Infrastructure provisioned successfully!"
+      Write-Host "Building container image in Azure Container Registry..."
+      
+      # Get the ACR name from the Bicep outputs
+      $acrName = azd env get-value AZURE_CONTAINER_REGISTRY_NAME
+      
+      if ($acrName) {
+        Write-Host "Building Docker image in ACR: $acrName"
+        az acr build --registry $acrName --image zava-storefront:latest --file ./src/Dockerfile ./src
+        Write-Host "Container image built successfully!"
+      } else {
+        Write-Host "Warning: ACR name not found. Please build the container manually."
+      }
+  
+  predeploy:
+    shell: pwsh
+    run: |
+      Write-Host "Preparing deployment..."
+  
+  postdeploy:
+    shell: pwsh
+    run: |
+      Write-Host ""
+      Write-Host "============================================"
+      Write-Host "Deployment completed successfully!"
+      Write-Host "============================================"
+      Write-Host ""
+      $appUrl = azd env get-value AZURE_APP_SERVICE_URL
+      if ($appUrl) {
+        Write-Host "Application URL: $appUrl"
+      }
+      Write-Host ""
