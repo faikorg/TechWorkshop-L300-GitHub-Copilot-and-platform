@@ -1,0 +1,9 @@
+# Ignore files during Docker build
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.git/
+**/.gitignore
+**/README.md
+**/*.md
