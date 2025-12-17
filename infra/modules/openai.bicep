@@ -34,6 +34,9 @@ param secondaryModelVersion string = '2024-07-18'
 @description('Secondary deployment capacity')
 param secondaryCapacity int = 10
 
+@description('The resource ID of the Log Analytics workspace for diagnostics')
+param logAnalyticsWorkspaceId string
+
 resource openAIAccount 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = {
   name: name
   location: location
@@ -82,6 +85,58 @@ resource secondaryDeployment 'Microsoft.CognitiveServices/accounts/deployments@2
   dependsOn: [
     gpt4Deployment
   ]
+}
+
+resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${name}-diagnostics'
+  scope: openAIAccount
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      {
+        category: 'Audit'
+        enabled: true
+        retentionPolicy: {
+          enabled: false
+          days: 0
+        }
+      }
+      {
+        category: 'RequestResponse'
+        enabled: true
+        retentionPolicy: {
+          enabled: false
+          days: 0
+        }
+      }
+      {
+        category: 'Trace'
+        enabled: true
+        retentionPolicy: {
+          enabled: false
+          days: 0
+        }
+      }
+      {
+        category: 'AzureOpenAIRequestUsage'
+        enabled: true
+        retentionPolicy: {
+          enabled: false
+          days: 0
+        }
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          enabled: false
+          days: 0
+        }
+      }
+    ]
+  }
 }
 
 @description('The resource ID of the Azure OpenAI service')

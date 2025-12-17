@@ -113,6 +113,7 @@ module openAi './modules/openai.bicep' = {
     secondaryModelName: 'gpt-4o-mini'
     secondaryModelVersion: '2024-07-18'
     secondaryCapacity: 10
+    logAnalyticsWorkspaceId: logAnalytics.outputs.id
   }
 }
 
