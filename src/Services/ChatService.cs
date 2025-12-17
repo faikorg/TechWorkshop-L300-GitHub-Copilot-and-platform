@@ -1,6 +1,5 @@
 using Azure;
 using Azure.AI.OpenAI;
-using Azure.AI.ContentSafety;
 using Azure.Identity;
 using OpenAI.Chat;
 
@@ -12,7 +11,6 @@ namespace ZavaStorefront.Services
     public class ChatService
     {
         private readonly AzureOpenAIClient _openAiClient;
-        private readonly ContentSafetyClient _contentSafetyClient;
         private readonly string _deploymentName;
         private readonly ILogger<ChatService> _logger;
 
@@ -36,7 +34,6 @@ namespace ZavaStorefront.Services
             {
                 _logger.LogInformation("Using API key authentication");
                 _openAiClient = new AzureOpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(apiKey));
-                _contentSafetyClient = new ContentSafetyClient(new Uri(endpoint), new Azure.AzureKeyCredential(apiKey));
             }
             else
             {
@@ -44,7 +41,6 @@ namespace ZavaStorefront.Services
                 // Use DefaultAzureCredential for authentication (supports Managed Identity in Azure)
                 var credential = new DefaultAzureCredential();
                 _openAiClient = new AzureOpenAIClient(new Uri(endpoint), credential);
-                _contentSafetyClient = new ContentSafetyClient(new Uri(endpoint), credential);
             }
         }
 
@@ -57,14 +53,6 @@ namespace ZavaStorefront.Services
         {
             try
             {
-                // Check content safety first
-                var (isSafe, reason) = await CheckContentSafetyAsync(userMessage);
-                if (!isSafe)
-                {
-                    _logger.LogWarning("Unsafe content detected: {Reason}", reason);
-                    return "I'm sorry, but I cannot process that message as it may contain inappropriate content. Please rephrase your question.";
-                }
-
                 _logger.LogInformation("Sending chat request to Azure OpenAI");
 
                 var chatClient = _openAiClient.GetChatClient(_deploymentName);
@@ -94,55 +82,6 @@ namespace ZavaStorefront.Services
             {
                 _logger.LogError(ex, "Unexpected error during chat request: {Message}", ex.Message);
                 throw new InvalidOperationException($"An error occurred while processing your request: {ex.Message}", ex);
-            }
-        }
-
-        /// <summary>
-        /// Checks if user message is safe using Azure AI Content Safety
-        /// </summary>
-        /// <param name="text">The text to analyze</param>
-        /// <returns>Tuple of (isSafe, reason)</returns>
-        private async Task<(bool isSafe, string reason)> CheckContentSafetyAsync(string text)
-        {
-            try
-            {
-                _logger.LogInformation("Checking content safety");
-
-                var request = new AnalyzeTextOptions(text);
-                var response = await _contentSafetyClient.AnalyzeTextAsync(request);
-
-                var result = response.Value;
-
-                // Check all categories with severity >= 2
-                if (result.CategoriesAnalysis.Any(c => c.Category == TextCategory.Hate && c.Severity >= 2))
-                {
-                    _logger.LogWarning("Content flagged: Hate");
-                    return (false, "hate speech");
-                }
-                if (result.CategoriesAnalysis.Any(c => c.Category == TextCategory.SelfHarm && c.Severity >= 2))
-                {
-                    _logger.LogWarning("Content flagged: Self-harm");
-                    return (false, "self-harm");
-                }
-                if (result.CategoriesAnalysis.Any(c => c.Category == TextCategory.Sexual && c.Severity >= 2))
-                {
-                    _logger.LogWarning("Content flagged: Sexual content");
-                    return (false, "sexual content");
-                }
-                if (result.CategoriesAnalysis.Any(c => c.Category == TextCategory.Violence && c.Severity >= 2))
-                {
-                    _logger.LogWarning("Content flagged: Violence");
-                    return (false, "violence");
-                }
-
-                _logger.LogInformation("Content passed safety check");
-                return (true, string.Empty);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Content safety check failed: {Message}", ex.Message);
-                // On error, allow the message through but log the issue
-                return (true, string.Empty);
             }
         }
 
