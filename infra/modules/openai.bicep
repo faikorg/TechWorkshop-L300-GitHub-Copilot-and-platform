@@ -45,6 +45,7 @@ resource openAIAccount 'Microsoft.CognitiveServices/accounts@2023-10-01-preview'
   properties: {
     customSubDomainName: name
     publicNetworkAccess: 'Enabled'
+    disableLocalAuth: true
   }
 }
 
@@ -91,7 +92,3 @@ output name string = openAIAccount.name
 
 @description('The endpoint of the Azure OpenAI service')
 output endpoint string = openAIAccount.properties.endpoint
-
-@description('The primary key of the Azure OpenAI service')
-@secure()
-output key string = openAIAccount.listKeys().key1
