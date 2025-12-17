@@ -139,6 +139,19 @@ module openAiRoleAssignment './modules/role-assignment.bicep' = {
   }
 }
 
+// Deploy AI Services Observability Workbook
+module workbook './modules/workbook.bicep' = {
+  name: 'workbook-deployment'
+  params: {
+    workbookName: guid(resourceGroup().id, 'ai-observability')
+    workbookDisplayName: 'AI Services Observability'
+    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+    workbookContent: loadJsonContent('workbook-template.json')
+    location: location
+    tags: tags
+  }
+}
+
 // Outputs
 @description('The name of the container registry')
 output containerRegistryName string = containerRegistry.outputs.name
@@ -173,3 +186,9 @@ output resourceGroupName string = resourceGroup().name
 
 @description('The location of the resources')
 output resourceLocation string = location
+
+@description('The name of the AI observability workbook')
+output workbookName string = workbook.outputs.workbookName
+
+@description('The resource ID of the AI observability workbook')
+output workbookId string = workbook.outputs.workbookId
