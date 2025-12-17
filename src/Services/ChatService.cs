@@ -28,9 +28,20 @@ namespace ZavaStorefront.Services
             _logger.LogInformation("Initializing ChatService with endpoint: {Endpoint}, deployment: {Deployment}", 
                 endpoint, _deploymentName);
 
-            // Use DefaultAzureCredential for authentication (supports Managed Identity in Azure)
-            var credential = new DefaultAzureCredential();
-            _openAiClient = new AzureOpenAIClient(new Uri(endpoint), credential);
+            // Check if API key is provided (for local development)
+            var apiKey = configuration["AZURE_OPENAI_API_KEY"];
+            if (!string.IsNullOrEmpty(apiKey))
+            {
+                _logger.LogInformation("Using API key authentication");
+                _openAiClient = new AzureOpenAIClient(new Uri(endpoint), new Azure.AzureKeyCredential(apiKey));
+            }
+            else
+            {
+                _logger.LogInformation("Using DefaultAzureCredential (Managed Identity)");
+                // Use DefaultAzureCredential for authentication (supports Managed Identity in Azure)
+                var credential = new DefaultAzureCredential();
+                _openAiClient = new AzureOpenAIClient(new Uri(endpoint), credential);
+            }
         }
 
         /// <summary>

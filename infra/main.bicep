@@ -92,6 +92,8 @@ module appService './modules/app-service.bicep' = {
     containerRegistryLoginServer: containerRegistry.outputs.loginServer
     containerImageName: 'zava-storefront:latest'
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
+    openAiEndpoint: openAi.outputs.endpoint
+    openAiDeploymentName: 'gpt-4o-mini'
   }
 }
 

@@ -20,6 +20,12 @@ param containerImageName string = 'zava-storefront:latest'
 @secure()
 param applicationInsightsConnectionString string
 
+@description('The Azure OpenAI endpoint URL')
+param openAiEndpoint string
+
+@description('The Azure OpenAI deployment name')
+param openAiDeploymentName string = 'gpt-4o-mini'
+
 resource appService 'Microsoft.Web/sites@2023-01-01' = {
   name: name
   location: location
@@ -55,6 +61,14 @@ resource appService 'Microsoft.Web/sites@2023-01-01' = {
         {
           name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
           value: 'false'
+        }
+        {
+          name: 'AZURE_OPENAI_ENDPOINT'
+          value: openAiEndpoint
+        }
+        {
+          name: 'AZURE_OPENAI_DEPLOYMENT_NAME'
+          value: openAiDeploymentName
         }
       ]
     }
