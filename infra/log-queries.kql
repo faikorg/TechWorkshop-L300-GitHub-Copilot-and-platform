@@ -1,0 +1,148 @@
+// az monitor log-analytics query --workspace ed1ecd82-04da-4c25-b649-2163b52419fd --analytics-query "AzureDiagnostics | project TimeGenerated, OperationName, ResultType, DurationMs, properties_s | take 10" --output table
+
+
+// Azure OpenAI Log Analytics Queries
+// Use these queries in Azure Portal > Log Analytics workspace > Logs
+
+// ============================================
+// 1. ALL RECENT AZURE OPENAI ACTIVITY
+// ============================================
+AzureDiagnostics
+| where Resource == "OPENAI-ZAVA-STOREFRONT-DEV-TDRGCWUVETH2K"
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, Category, OperationName, CallerIPAddress, ResultType, properties_s
+| order by TimeGenerated desc
+
+// ============================================
+// 2. CHAT COMPLETIONS (Request/Response)
+// ============================================
+AzureDiagnostics
+| where Resource == "OPENAI-ZAVA-STOREFRONT-DEV-TDRGCWUVETH2K"
+| where Category == "RequestResponse"
+| where TimeGenerated > ago(24h)
+| extend Properties = parse_json(properties_s)
+| project 
+    TimeGenerated,
+    OperationName,
+    CallerIPAddress,
+    Model = Properties.model,
+    Prompt = Properties.prompt,
+    Response = Properties.response,
+    TokensUsed = Properties.usage
+| order by TimeGenerated desc
+
+// ============================================
+// 3. TOKEN USAGE AND COSTS
+// ============================================
+AzureDiagnostics
+| where Resource == "OPENAI-ZAVA-STOREFRONT-DEV-TDRGCWUVETH2K"
+| where Category == "AzureOpenAIRequestUsage"
+| where TimeGenerated > ago(24h)
+| extend Properties = parse_json(properties_s)
+| project 
+    TimeGenerated,
+    Model = Properties.model,
+    PromptTokens = Properties.prompt_tokens,
+    CompletionTokens = Properties.completion_tokens,
+    TotalTokens = Properties.total_tokens
+| summarize 
+    TotalRequests = count(),
+    TotalPromptTokens = sum(PromptTokens),
+    TotalCompletionTokens = sum(CompletionTokens),
+    TotalTokens = sum(TotalTokens)
+    by bin(TimeGenerated, 1h), Model
+| order by TimeGenerated desc
+
+// ============================================
+// 4. AUTHENTICATION AUDIT LOGS
+// ============================================
+AzureDiagnostics
+| where Resource == "OPENAI-ZAVA-STOREFRONT-DEV-TDRGCWUVETH2K"
+| where Category == "Audit"
+| where TimeGenerated > ago(24h)
+| extend Properties = parse_json(properties_s)
+| project 
+    TimeGenerated,
+    OperationName,
+    CallerIPAddress,
+    Identity = Properties.objectId,
+    ResultType
+| order by TimeGenerated desc
+
+// ============================================
+// 5. ERROR TRACKING
+// ============================================
+AzureDiagnostics
+| where Resource == "OPENAI-ZAVA-STOREFRONT-DEV-TDRGCWUVETH2K"
+| where TimeGenerated > ago(24h)
+| where ResultType != "" and ResultType != "Success"
+| project 
+    TimeGenerated,
+    Category,
+    OperationName,
+    ResultType,
+    ResultDescription,
+    properties_s
+| order by TimeGenerated desc
+
+// ============================================
+// 6. PERFORMANCE METRICS (Response Times)
+// ============================================
+AzureDiagnostics
+| where Resource == "OPENAI-ZAVA-STOREFRONT-DEV-TDRGCWUVETH2K"
+| where Category == "RequestResponse"
+| where TimeGenerated > ago(24h)
+| where DurationMs > 0
+| summarize 
+    RequestCount = count(),
+    AvgDuration = avg(DurationMs),
+    P50Duration = percentile(DurationMs, 50),
+    P95Duration = percentile(DurationMs, 95),
+    P99Duration = percentile(DurationMs, 99)
+    by bin(TimeGenerated, 15m)
+| order by TimeGenerated desc
+
+// ============================================
+// 7. TRACE LOGS (Detailed Execution)
+// ============================================
+AzureDiagnostics
+| where Resource == "OPENAI-ZAVA-STOREFRONT-DEV-TDRGCWUVETH2K"
+| where Category == "Trace"
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, OperationName, Level, Message, properties_s
+| order by TimeGenerated desc
+
+// ============================================
+// 8. MANAGED IDENTITY USAGE
+// ============================================
+AzureDiagnostics
+| where Resource == "OPENAI-ZAVA-STOREFRONT-DEV-TDRGCWUVETH2K"
+| where TimeGenerated > ago(24h)
+| extend Properties = parse_json(properties_s)
+| where isnotempty(Properties.objectId)
+| project 
+    TimeGenerated,
+    Category,
+    OperationName,
+    ManagedIdentity = Properties.objectId,
+    CallerIPAddress
+| summarize RequestCount = count() by ManagedIdentity, OperationName
+| order by RequestCount desc
+
+// ============================================
+// 9. HOURLY REQUEST SUMMARY
+// ============================================
+AzureDiagnostics
+| where Resource == "OPENAI-ZAVA-STOREFRONT-DEV-TDRGCWUVETH2K"
+| where TimeGenerated > ago(7d)
+| summarize RequestCount = count() by bin(TimeGenerated, 1h), Category
+| render timechart
+
+// ============================================
+// 10. REAL-TIME MONITORING (Last 15 minutes)
+// ============================================
+AzureDiagnostics
+| where Resource == "OPENAI-ZAVA-STOREFRONT-DEV-TDRGCWUVETH2K"
+| where TimeGenerated > ago(15m)
+| project TimeGenerated, Category, OperationName, ResultType, properties_s
+| order by TimeGenerated desc
