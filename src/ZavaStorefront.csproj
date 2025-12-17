@@ -7,4 +7,9 @@
     <UserSecretsId>35b54130-8c45-45b1-938a-2ec40e1e242d</UserSecretsId>
   </PropertyGroup>
 
+<ItemGroup>
+   <PackageReference Include="System.Text.Encodings.Web" Version="4.5.1" />
+   <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+   <PackageReference Include="Microsoft.Data.SqlClient" Version="2.1.1" />
+ </ItemGroup>
 </Project>
